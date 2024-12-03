@@ -25,7 +25,7 @@ public class RouteOptimizationController {
 
     @PostMapping("/final-optimize/{k}")
     public ResponseEntity<Map<String, Object>> getFinalOptimizedRoute(@RequestBody List<Point> points, @PathVariable int k) {
-        List<Point> optimizedRoute = routeOptimizationService.getFinalOptimizedRoute(points, k);
+        List<List<Point>> optimizedRoute = routeOptimizationService.getFinalOptimizedRouteByClusters(points, k);
         double totalDistance = routeDistanceCalculator.calculateTotalDistance(optimizedRoute);
 
         Map<String, Object> response = new HashMap<>();

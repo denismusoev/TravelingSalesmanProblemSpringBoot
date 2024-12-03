@@ -21,7 +21,7 @@ public class ClusteringService {
                 .toArray(double[][]::new);
 
         // Применяем алгоритм KMeans
-        KMeans kmeans = KMeans.fit(data, k);
+        KMeans kmeans = KMeans.fit(data, k, 300 /* maxIter */, 0.0001 /* tolerance */);
 
         // Создаем список кластеров
         List<List<Point>> clusters = new ArrayList<>();

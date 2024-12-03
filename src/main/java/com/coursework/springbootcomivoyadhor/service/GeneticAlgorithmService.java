@@ -11,14 +11,22 @@ import java.util.Random;
 @Service
 public class GeneticAlgorithmService {
 
-    private static final int POPULATION_SIZE = 100;
-    private static final int GENERATIONS = 500;
+    private static final int POPULATION_SIZE = 250;
+    private static final int GENERATIONS = 1000;
+    private int CURRENT_GENERATION = 0;
     private static final double MUTATION_RATE = 0.02;
+
+    private final DistanceCalculator distanceCalculator;
+
+    public GeneticAlgorithmService(DistanceCalculator distanceCalculator) {
+        this.distanceCalculator = distanceCalculator;
+    }
 
     public List<Point> findOptimalRoute(List<Point> points) {
         List<List<Point>> population = initializePopulation(points);
         for (int i = 0; i < GENERATIONS; i++) {
             population = evolvePopulation(population);
+            CURRENT_GENERATION = i;
         }
         return getFittest(population);
     }
@@ -46,15 +54,26 @@ public class GeneticAlgorithmService {
     }
 
     private List<Point> selectParent(List<List<Point>> population) {
-        return population.get(new Random().nextInt(population.size()));
+        List<Point> best = null;
+        double bestFitness = Double.MAX_VALUE;
+        for (int i = 0; i < 5; i++) { // Турнир из 5 случайных маршрутов
+            List<Point> candidate = population.get(new Random().nextInt(population.size()));
+            double fitness = distanceCalculator.getRouteDistance(candidate);
+            if (fitness < bestFitness) {
+                best = candidate;
+                bestFitness = fitness;
+            }
+        }
+        return best;
     }
+
 
     private List<Point> crossover(List<Point> parent1, List<Point> parent2) {
         int start = new Random().nextInt(parent1.size());
         int end = start + new Random().nextInt(parent1.size() - start);
-        List<Point> child = new ArrayList<>(parent1.subList(start, end));
+        List<Point> child = new ArrayList<>(parent1.subList(start, end)); // Берём подмножество из parent1
 
-        for (Point point : parent2) {
+        for (Point point : parent2) { // Добавляем точки из parent2, которых нет в подмножестве
             if (!child.contains(point)) {
                 child.add(point);
             }
@@ -62,34 +81,23 @@ public class GeneticAlgorithmService {
         return child;
     }
 
+
+
     private void mutate(List<Point> route) {
+        double dynamicMutationRate = MUTATION_RATE / (1 + CURRENT_GENERATION / 100.0); // Плавное снижение мутаций
         for (int i = 0; i < route.size(); i++) {
-            if (Math.random() < MUTATION_RATE) {
+            if (Math.random() < dynamicMutationRate) {
                 int j = new Random().nextInt(route.size());
                 Collections.swap(route, i, j);
             }
         }
     }
 
+
     private List<Point> getFittest(List<List<Point>> population) {
         return population.stream()
-                .min((route1, route2) -> Double.compare(getRouteDistance(route1), getRouteDistance(route2)))
+                .min((route1, route2) -> Double.compare(distanceCalculator.getRouteDistance(route1), distanceCalculator.getRouteDistance(route2)))
                 .orElseThrow();
-    }
-
-    private double getRouteDistance(List<Point> route) {
-        double totalDistance = 0;
-        for (int i = 0; i < route.size() - 1; i++) {
-            totalDistance += distance(route.get(i), route.get(i + 1));
-        }
-        totalDistance += distance(route.get(route.size() - 1), route.get(0)); // Замыкаем маршрут
-        return totalDistance;
-    }
-
-    private double distance(Point p1, Point p2) {
-        double latDiff = p1.getLatitude() - p2.getLatitude();
-        double lonDiff = p1.getLongitude() - p2.getLongitude();
-        return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
     }
 }
 
